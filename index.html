@@ -1,0 +1,2005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIFT LOG</title>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=DM+Mono:wght@300;400;500&family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --black: #080808;
+    --white: #f0ede6;
+    --yellow: #e8d44d;
+    --red: #d63c2f;
+    --green: #3ab26e;
+    --blue: #5ca8e8;
+    --purple: #c87ce8;
+    --grey: #161616;
+    --border: #242424;
+    --dim: #666;
+    --mid: #333;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Barlow Condensed', sans-serif;
+    line-height: 1.4;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: rgba(8,8,8,0.97);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 1.6rem;
+    color: var(--yellow);
+    letter-spacing: -0.5px;
+  }
+
+  .logo span { color: var(--white); font-size: 0.9rem; display: block; font-family: 'DM Mono', monospace; font-weight: 300; letter-spacing: 2px; color: var(--dim); margin-top: -4px; }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .week-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--grey);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+  }
+
+  .week-selector button {
+    background: none;
+    border: none;
+    color: var(--yellow);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 4px;
+    line-height: 1;
+  }
+
+  .week-selector span {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--white);
+    min-width: 64px;
+    text-align: center;
+  }
+
+  /* ── NAV TABS ── */
+  .nav-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    gap: 0;
+    overflow-x: auto;
+  }
+
+  .tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--dim);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 12px 18px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    margin-bottom: -1px;
+  }
+
+  .tab-btn:hover { color: var(--white); }
+  .tab-btn.active { color: var(--yellow); border-bottom-color: var(--yellow); }
+
+  .tab-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    margin-left: 6px;
+    vertical-align: middle;
+    opacity: 0;
+  }
+  .tab-dot.logged { opacity: 1; }
+
+  /* ── MAIN ── */
+  .view { display: none; padding: 28px; }
+  .view.active { display: block; }
+
+  /* ── WORKOUT LOG VIEW ── */
+  .day-intro {
+    margin-bottom: 24px;
+  }
+
+  .day-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 2rem;
+    color: var(--white);
+    line-height: 1;
+  }
+
+  .day-subtitle {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--yellow);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* ── EXERCISE CARD ── */
+  .ex-card {
+    background: var(--grey);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .ex-card.complete { border-color: var(--green); }
+
+  .ex-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .ex-card-header:hover { background: rgba(255,255,255,0.02); }
+
+  .ex-card-left { display: flex; align-items: center; gap: 12px; }
+
+  .ex-complete-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .ex-card.complete .ex-complete-dot { background: var(--green); }
+
+  .ex-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--white);
+  }
+
+  .ex-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--dim);
+    margin-top: 2px;
+  }
+
+  .ex-card-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .ex-1rm {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--yellow);
+    background: rgba(232,212,77,0.08);
+    padding: 3px 8px;
+    border-radius: 3px;
+  }
+
+  .ex-chevron {
+    color: var(--dim);
+    font-size: 0.8rem;
+    transition: transform 0.2s;
+  }
+
+  .ex-card.open .ex-chevron { transform: rotate(180deg); }
+
+  /* ── SET INPUTS ── */
+  .ex-body {
+    display: none;
+    padding: 0 18px 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .ex-card.open .ex-body { display: block; }
+
+  .sets-grid {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .set-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 1fr auto;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .set-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--dim);
+    text-align: center;
+  }
+
+  .set-input {
+    background: #0e0e0e;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--white);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    padding: 8px 10px;
+    width: 100%;
+    text-align: center;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+  }
+
+  .set-input:focus {
+    outline: none;
+    border-color: var(--yellow);
+  }
+
+  .set-input::placeholder { color: var(--mid); }
+
+  .set-input-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--dim);
+    text-align: center;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+  }
+
+  .set-est-1rm {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--dim);
+    text-align: right;
+    min-width: 60px;
+  }
+
+  .set-est-1rm.highlight { color: var(--yellow); }
+
+  .input-headers {
+    display: grid;
+    grid-template-columns: 40px 1fr 1fr auto;
+    gap: 8px;
+    margin-top: 10px;
+    margin-bottom: 2px;
+  }
+
+  .input-header {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--dim);
+    text-align: center;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .save-btn {
+    margin-top: 14px;
+    width: 100%;
+    background: var(--yellow);
+    border: none;
+    border-radius: 4px;
+    color: var(--black);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    padding: 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: opacity 0.15s;
+  }
+
+  .save-btn:hover { opacity: 0.85; }
+  .save-btn:active { opacity: 0.7; }
+
+  .prev-session {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .prev-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .prev-sets {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .prev-set-chip {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: #888;
+    background: var(--border);
+    padding: 3px 8px;
+    border-radius: 3px;
+  }
+
+  /* ── DASHBOARD VIEW ── */
+  .dash-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--grey);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 2px;
+    width: var(--prog, 0%);
+    background: var(--yellow);
+  }
+
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .stat-val {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 2.2rem;
+    line-height: 1;
+    color: var(--white);
+  }
+
+  .stat-sub {
+    font-size: 0.75rem;
+    color: var(--dim);
+    margin-top: 4px;
+  }
+
+  .stat-sub span { color: var(--green); font-weight: 700; }
+
+  .section-head {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--dim);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-head::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* ── CHARTS ── */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .chart-card {
+    background: var(--grey);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+
+  .chart-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+
+  .chart-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--dim);
+    margin-bottom: 16px;
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 160px;
+  }
+
+  /* ── LOG HISTORY ── */
+  .log-entry {
+    background: var(--grey);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .log-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--dim);
+    margin-bottom: 6px;
+  }
+
+  .log-exercise { font-size: 0.9rem; font-weight: 700; }
+
+  .log-sets {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .log-set-chip {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    background: rgba(255,255,255,0.05);
+    padding: 3px 8px;
+    border-radius: 3px;
+    color: #aaa;
+  }
+
+  .log-1rm-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--yellow);
+    background: rgba(232,212,77,0.08);
+    padding: 4px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--dim);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    line-height: 2;
+  }
+
+  .empty-state .big { font-size: 2rem; margin-bottom: 8px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--green);
+    color: var(--black);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    padding: 12px 24px;
+    border-radius: 4px;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 999;
+    pointer-events: none;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 640px) {
+    .dash-grid { grid-template-columns: 1fr 1fr; }
+    .charts-grid { grid-template-columns: 1fr; }
+    header { padding: 14px 16px; }
+    .view { padding: 16px; }
+    .nav-tabs { padding: 0 8px; }
+    .tab-btn { padding: 12px 12px; font-size: 0.78rem; }
+  }
+  /* ── EDIT MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: #111;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .modal-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 1.1rem;
+    color: var(--yellow);
+    margin-bottom: 4px;
+  }
+
+  .modal-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--dim);
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+  }
+
+  .modal-field { margin-bottom: 14px; }
+
+  .modal-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .modal-input {
+    width: 100%;
+    background: #0e0e0e;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--white);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1rem;
+    padding: 10px 12px;
+    transition: border-color 0.15s;
+  }
+
+  .modal-input:focus { outline: none; border-color: var(--yellow); }
+
+  .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .modal-actions { display: flex; gap: 8px; margin-top: 20px; }
+
+  .modal-btn {
+    flex: 1;
+    border: none;
+    border-radius: 4px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    padding: 11px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: opacity 0.15s;
+  }
+
+  .modal-btn:hover { opacity: 0.85; }
+  .modal-btn.primary { background: var(--yellow); color: var(--black); }
+  .modal-btn.secondary { background: var(--border); color: var(--dim); }
+
+  .edit-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--dim);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 1px;
+  }
+
+  /* ── GOLF LOG ── */
+  .golf-card {
+    background: var(--grey);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+
+  .golf-card.complete { border-color: var(--green); }
+
+  .golf-section-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .golf-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .golf-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .golf-field label {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+
+  .golf-input {
+    width: 100%;
+    background: #0e0e0e;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--white);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem;
+    padding: 9px 10px;
+    text-align: center;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+  }
+
+  .golf-input:focus { outline: none; border-color: var(--green); }
+  .golf-input::placeholder { color: var(--mid); }
+
+  .golf-stat-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .golf-stat {
+    background: rgba(58,178,110,0.08);
+    border: 1px solid rgba(58,178,110,0.2);
+    border-radius: 4px;
+    padding: 8px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--green);
+  }
+
+  .golf-stat span { color: var(--white); font-size: 1rem; font-weight: 700; display: block; }
+
+  .club-rows { display: flex; flex-direction: column; gap: 8px; }
+
+  .club-row {
+    display: grid;
+    grid-template-columns: 120px 1fr 1fr auto;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .club-label {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--white);
+  }
+
+  .club-prev {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--dim);
+    text-align: right;
+  }
+
+  .club-prev.better { color: var(--green); }
+  .club-prev.worse  { color: var(--red); }
+
+  /* ── RECOVERY LOG ── */
+  .recovery-card {
+    background: var(--grey);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+
+  .recovery-card.complete { border-color: var(--purple); }
+
+  .soreness-scale {
+    display: flex;
+    gap: 6px;
+    margin: 10px 0 16px;
+    flex-wrap: wrap;
+  }
+
+  .soreness-btn {
+    width: 40px; height: 40px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: #0e0e0e;
+    color: var(--dim);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .soreness-btn:hover { border-color: var(--purple); color: var(--white); }
+  .soreness-btn.selected { background: var(--purple); border-color: var(--purple); color: var(--black); font-weight: 700; }
+
+  .recovery-checks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .check-btn {
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: #0e0e0e;
+    color: var(--dim);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .check-btn .check-icon { font-size: 1rem; }
+  .check-btn:hover { border-color: var(--purple); }
+  .check-btn.checked { border-color: var(--purple); background: rgba(200,124,232,0.08); color: var(--white); }
+
+  .sauna-input-wrap { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .sauna-input-wrap label { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--dim); letter-spacing: 1px; white-space: nowrap; }
+
+  .save-btn-purple {
+    margin-top: 4px;
+    width: 100%;
+    background: var(--purple);
+    border: none;
+    border-radius: 4px;
+    color: var(--black);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    padding: 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: opacity 0.15s;
+  }
+
+  .save-btn-purple:hover { opacity: 0.85; }
+
+  .save-btn-green {
+    margin-top: 14px;
+    width: 100%;
+    background: var(--green);
+    border: none;
+    border-radius: 4px;
+    color: var(--black);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    padding: 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: opacity 0.15s;
+  }
+
+  .save-btn-green:hover { opacity: 0.85; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    LIFT LOG
+    <span>GET AFTER IT · 12 WEEKS</span>
+  </div>
+  <div class="header-right">
+    <div class="week-selector">
+      <button onclick="changeWeek(-1)">‹</button>
+      <span id="week-label">WEEK 1</span>
+      <button onclick="changeWeek(1)">›</button>
+    </div>
+  </div>
+</header>
+
+<div class="nav-tabs">
+  <button class="tab-btn active" onclick="showView('dashboard')">Dashboard</button>
+  <button class="tab-btn" onclick="showView('mon')">MON <span class="tab-dot" id="dot-mon"></span></button>
+  <button class="tab-btn" onclick="showView('tue')">TUE <span class="tab-dot" id="dot-tue"></span></button>
+  <button class="tab-btn" onclick="showView('wed')">WED <span class="tab-dot" id="dot-wed"></span></button>
+  <button class="tab-btn" onclick="showView('thu')">THU <span class="tab-dot" id="dot-thu"></span></button>
+  <button class="tab-btn" onclick="showView('fri')">FRI <span class="tab-dot" id="dot-fri"></span></button>
+  <button class="tab-btn" onclick="showView('sat')">SAT <span class="tab-dot" id="dot-sat"></span></button>
+  <button class="tab-btn" onclick="showView('sun')">SUN <span class="tab-dot" id="dot-sun"></span></button>
+  <button class="tab-btn" onclick="showView('history')">History</button>
+</div>
+
+<!-- DASHBOARD -->
+<div class="view active" id="view-dashboard">
+  <div class="dash-grid">
+    <div class="stat-card" id="stat-squat" style="--prog:55%">
+      <div class="stat-label">Squat 1RM</div>
+      <div class="stat-val" id="val-squat">250</div>
+      <div class="stat-sub">Target: <span>315 lbs</span></div>
+    </div>
+    <div class="stat-card" id="stat-bench" style="--prog:57%">
+      <div class="stat-label">Bench 1RM</div>
+      <div class="stat-val" id="val-bench">205</div>
+      <div class="stat-sub">Target: <span>275 lbs</span></div>
+    </div>
+    <div class="stat-card" id="stat-dead" style="--prog:55%">
+      <div class="stat-label">Deadlift 1RM</div>
+      <div class="stat-val" id="val-dead">255</div>
+      <div class="stat-sub">Target: <span>410 lbs</span></div>
+    </div>
+  </div>
+
+  <div class="dash-grid" style="grid-template-columns:1fr 1fr;">
+    <div class="stat-card" id="stat-total">
+      <div class="stat-label">Big 3 Total</div>
+      <div class="stat-val" id="val-total">710</div>
+      <div class="stat-sub">Target: <span>1,000 lbs</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Sessions Logged</div>
+      <div class="stat-val" id="val-sessions">0</div>
+      <div class="stat-sub">This program</div>
+    </div>
+  </div>
+
+  <div class="section-head">Progress Charts</div>
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Squat</div>
+      <div class="chart-sub">Estimated 1RM over time</div>
+      <div class="chart-wrap"><canvas id="chart-squat"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Bench Press</div>
+      <div class="chart-sub">Estimated 1RM over time</div>
+      <div class="chart-wrap"><canvas id="chart-bench"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Deadlift</div>
+      <div class="chart-sub">Estimated 1RM over time</div>
+      <div class="chart-wrap"><canvas id="chart-dead"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Big 3 Total</div>
+      <div class="chart-sub">Combined estimated 1RM</div>
+      <div class="chart-wrap"><canvas id="chart-total"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section-head" style="margin-top:28px">Golf + Recovery</div>
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Driver — Avg Distance</div>
+      <div class="chart-sub">Session average vs 300 yd goal</div>
+      <div class="chart-wrap"><canvas id="chart-drive-avg"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Driver — Best Drive</div>
+      <div class="chart-sub">Session best vs 300 yd goal</div>
+      <div class="chart-wrap"><canvas id="chart-drive-best"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">7-Iron Avg Distance</div>
+      <div class="chart-sub">Consistency indicator</div>
+      <div class="chart-wrap"><canvas id="chart-iron"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Recovery — Soreness</div>
+      <div class="chart-sub">1–10 rating (lower = better recovered)</div>
+      <div class="chart-wrap"><canvas id="chart-soreness"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- MONDAY -->
+<div class="view" id="view-mon">
+  <div class="day-intro">
+    <div class="day-title">MONDAY</div>
+    <div class="day-subtitle">Lower Body · Squat Day</div>
+  </div>
+  <div id="exercises-mon"></div>
+</div>
+
+<!-- TUESDAY: FIVE IRON -->
+<div class="view" id="view-tue">
+  <div class="day-intro">
+    <div class="day-title">TUESDAY</div>
+    <div class="day-subtitle">Five Iron · Power Session</div>
+  </div>
+  <div id="golf-log-tue"></div>
+</div>
+
+<!-- WEDNESDAY -->
+<div class="view" id="view-wed">
+  <div class="day-intro">
+    <div class="day-title">WEDNESDAY</div>
+    <div class="day-subtitle">Upper Body · Bench + Press</div>
+  </div>
+  <div id="exercises-wed"></div>
+</div>
+
+<!-- THURSDAY -->
+<div class="view" id="view-thu">
+  <div class="day-intro">
+    <div class="day-title">THURSDAY</div>
+    <div class="day-subtitle">Lower Body · Deadlift Day</div>
+  </div>
+  <div id="exercises-thu"></div>
+</div>
+
+<!-- FRIDAY: FIVE IRON -->
+<div class="view" id="view-fri">
+  <div class="day-intro">
+    <div class="day-title">FRIDAY</div>
+    <div class="day-subtitle">Five Iron · Consistency Session</div>
+  </div>
+  <div id="golf-log-fri"></div>
+</div>
+
+<!-- SATURDAY -->
+<div class="view" id="view-sat">
+  <div class="day-intro">
+    <div class="day-title">SATURDAY</div>
+    <div class="day-subtitle">Upper Body · Arms + Shoulders</div>
+  </div>
+  <div id="exercises-sat"></div>
+</div>
+
+<!-- SUNDAY: RECOVERY -->
+<div class="view" id="view-sun">
+  <div class="day-intro">
+    <div class="day-title">SUNDAY</div>
+    <div class="day-subtitle">Active Recovery</div>
+  </div>
+  <div id="recovery-log"></div>
+</div>
+
+<!-- HISTORY -->
+<div class="view" id="view-history">
+  <div class="section-head">All Sessions</div>
+  <div id="history-list"></div>
+</div>
+
+<div class="modal-overlay" id="edit-modal" onclick="closeEditModal(event)">
+  <div class="modal">
+    <div class="modal-title">EDIT EXERCISE</div>
+    <div class="modal-sub" id="modal-context">WEEK 1 · MONDAY</div>
+    <div class="modal-field">
+      <div class="modal-label">Exercise Name</div>
+      <input class="modal-input" id="modal-name" type="text" placeholder="e.g. Goblet Squat">
+    </div>
+    <div class="modal-row" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="modal-field">
+        <div class="modal-label">Sets</div>
+        <input class="modal-input" id="modal-sets" type="number" inputmode="numeric" placeholder="4">
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">Reps</div>
+        <input class="modal-input" id="modal-reps" type="number" inputmode="numeric" placeholder="8">
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">Note / Cue</div>
+        <input class="modal-input" id="modal-note" type="text" placeholder="e.g. slow eccentric">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn secondary" onclick="closeEditModal()">CANCEL</button>
+      <button class="modal-btn primary" onclick="confirmEdit()">SAVE CHANGE</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">SAVED ✓</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+
+const PROGRAM = {
+  mon: {
+    label: 'Monday · Lower / Squat',
+    exercises: [
+      { id: 'squat',        name: 'Back Squat',               sets: 4, reps: 4,  note: '3 min rest · brace hard', big3: 'squat' },
+      { id: 'rdl',          name: 'Romanian Deadlift',         sets: 3, reps: 8,  note: 'Slow 3s eccentric' },
+      { id: 'bss',          name: 'Bulgarian Split Squat',     sets: 3, reps: 8,  note: 'Per side — enter total weight' },
+      { id: 'legpress',     name: 'Leg Press',                 sets: 3, reps: 12, note: 'High foot placement' },
+      { id: 'hipthrust',    name: 'Hip Thrust (Glute Drive)',   sets: 3, reps: 10, note: 'Squeeze at top' },
+      { id: 'pallof',       name: 'Pallof Press',              sets: 3, reps: 10, note: 'Per side' },
+      { id: 'sidebend',     name: 'DB Side Bend',              sets: 3, reps: 12, note: 'Per side — heavy' },
+      { id: 'declinesitup', name: 'Weighted Decline Sit-Up',   sets: 3, reps: 15, note: 'Hold plate to chest' },
+      { id: 'bicycle',      name: 'Bicycle Crunch',            sets: 3, reps: 20, note: 'Slow and controlled' },
+    ]
+  },
+  wed: {
+    label: 'Wednesday · Upper / Bench',
+    exercises: [
+      { id: 'bench',        name: 'Flat Barbell Bench Press',  sets: 4, reps: 4,  note: '3 min rest', big3: 'bench' },
+      { id: 'ohp',          name: 'Overhead Press',            sets: 3, reps: 6,  note: 'Strict, no leg drive' },
+      { id: 'pullup',       name: 'Weighted Pull-Ups',         sets: 4, reps: 5,  note: 'BW + added weight' },
+      { id: 'inclinedb',    name: 'Incline DB Press',          sets: 3, reps: 10, note: 'Upper chest focus' },
+      { id: 'cablefly',     name: 'Cable Fly (Low→High)',      sets: 3, reps: 12, note: 'Slow eccentric' },
+      { id: 'laterals',     name: 'Lateral Raises',            sets: 4, reps: 15, note: 'No swinging' },
+      { id: 'hangingraise', name: 'Hanging Knee→Leg Raises',   sets: 3, reps: 12, note: 'Progress to straight legs' },
+      { id: 'sideplank',    name: 'Side Plank Hip Dip',        sets: 3, reps: 12, note: 'Per side' },
+    ]
+  },
+  thu: {
+    label: 'Thursday · Lower / Deadlift',
+    exercises: [
+      { id: 'dead',         name: 'Conventional Deadlift',     sets: 4, reps: 3,  note: 'Reset every rep', big3: 'dead' },
+      { id: 'trapbar',      name: 'Trap Bar Deadlift',          sets: 3, reps: 6,  note: 'More quad focus' },
+      { id: 'legcurl',      name: 'Leg Curl (Machine)',         sets: 3, reps: 12, note: 'Slow eccentric' },
+      { id: 'legext',       name: 'Leg Extension (Machine)',    sets: 3, reps: 12, note: 'Full ROM' },
+      { id: 'hanginglr',    name: 'Hanging Leg Raises',         sets: 3, reps: 12, note: 'No swing' },
+      { id: 'abwheel',      name: 'Ab Wheel Rollout',           sets: 3, reps: 8,  note: 'No lower back arch' },
+      { id: 'cablecrunch',  name: 'Weighted Cable Crunch',      sets: 3, reps: 15, note: 'Resistance builds muscle' },
+      { id: 'dragonflag',   name: 'Dragon Flag',                sets: 3, reps: 6,  note: 'Slow eccentric' },
+      { id: 'suitcase',     name: 'Suitcase Carry (DB)',        sets: 3, reps: 40, note: '40 steps per side' },
+      { id: 'deadbug',      name: 'Dead Bug',                   sets: 3, reps: 10, note: 'Back flat to floor' },
+    ]
+  },
+  sat: {
+    label: 'Saturday · Upper / Arms',
+    exercises: [
+      { id: 'dbpress',      name: 'Seated DB Shoulder Press',   sets: 4, reps: 10, note: 'Full ROM' },
+      { id: 'lats2',        name: 'Lateral Raises',             sets: 4, reps: 15, note: 'Slight forward lean' },
+      { id: 'cablerow',     name: 'Cable Row (Neutral Grip)',   sets: 3, reps: 10, note: 'Squeeze at peak' },
+      { id: 'facepull',     name: 'Face Pulls',                 sets: 3, reps: 15, note: 'Elbows high, rope attachment' },
+      { id: 'ezcurl',       name: 'EZ-Bar Curl',                sets: 4, reps: 10, note: 'Full ROM' },
+      { id: 'hammer',       name: 'Hammer Curl',                sets: 3, reps: 12, note: 'Neutral grip' },
+      { id: 'inclinecurl',  name: 'Incline DB Curl',            sets: 3, reps: 10, note: 'Max stretch' },
+      { id: 'cgbench',      name: 'Close-Grip Bench',           sets: 4, reps: 8,  note: 'Elbows in tight' },
+      { id: 'skull',        name: 'Skull Crushers (EZ-Bar)',    sets: 3, reps: 10, note: 'Slow eccentric' },
+      { id: 'pushdownss',   name: 'Pushdown + Curl SS',         sets: 3, reps: 12, note: 'Superset' },
+      { id: 'hollow',       name: 'Hollow Body Hold',           sets: 3, reps: 30, note: 'Arms overhead, back flat (secs)' },
+      { id: 'russian',      name: 'Russian Twist (weighted)',   sets: 3, reps: 20, note: 'Feet off floor' },
+    ]
+  }
+};
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+
+let currentWeek = 1;
+let charts = {};
+
+function storageKey(week, day, exId) {
+  return `liftlog_w${week}_${day}_${exId}`;
+}
+
+function saveSet(week, day, exId, setIdx, weight, reps) {
+  const key = storageKey(week, day, exId);
+  const existing = JSON.parse(localStorage.getItem(key) || '[]');
+  existing[setIdx] = { weight: parseFloat(weight) || 0, reps: parseInt(reps) || 0, ts: Date.now() };
+  localStorage.setItem(key, JSON.stringify(existing));
+}
+
+function loadSets(week, day, exId) {
+  return JSON.parse(localStorage.getItem(storageKey(week, day, exId)) || '[]');
+}
+
+function calc1RM(weight, reps) {
+  if (!weight || !reps) return 0;
+  return Math.round(weight * reps * 0.0333 + weight);
+}
+
+function bestSet(sets) {
+  let best = 0;
+  sets.forEach(s => {
+    if (s && s.weight && s.reps) {
+      const rm = calc1RM(s.weight, s.reps);
+      if (rm > best) best = rm;
+    }
+  });
+  return best;
+}
+
+// ── RENDER DAY ────────────────────────────────────────────────────────────────
+
+function renderDay(day) {
+  const container = document.getElementById('exercises-' + day);
+  if (!container) return;
+  const dayData = PROGRAM[day];
+  container.innerHTML = '';
+
+  dayData.exercises.forEach(exBase => {
+    const ex = getExercise(currentWeek, day, exBase.id);
+    const saved = loadSets(currentWeek, day, ex.id);
+    const prevSaved = loadSets(currentWeek - 1, day, ex.id);
+    const best1rm = bestSet(saved);
+    const allFilled = saved.filter(s => s && s.weight > 0).length >= ex.sets;
+
+    const card = document.createElement('div');
+    card.className = 'ex-card' + (allFilled ? ' complete' : '');
+    card.dataset.exId = ex.id;
+    card.dataset.day = day;
+
+    let setRowsHTML = '';
+    for (let i = 0; i < ex.sets; i++) {
+      const s = saved[i] || {};
+      const estRm = s.weight && s.reps ? calc1RM(s.weight, s.reps) : '';
+      setRowsHTML += `
+        <div class="set-row">
+          <div class="set-label">S${i+1}</div>
+          <input class="set-input" type="number" inputmode="decimal" placeholder="lbs"
+            value="${s.weight || ''}"
+            data-set="${i}" data-field="weight"
+            onchange="onSetChange(this, '${day}', '${ex.id}', ${i})"
+            oninput="onSetInput(this, '${day}', '${ex.id}', ${i})">
+          <input class="set-input" type="number" inputmode="numeric" placeholder="reps"
+            value="${s.reps || ''}"
+            data-set="${i}" data-field="reps"
+            onchange="onSetChange(this, '${day}', '${ex.id}', ${i})"
+            oninput="onSetInput(this, '${day}', '${ex.id}', ${i})">
+          <div class="set-est-1rm ${estRm ? 'highlight' : ''}" id="est-${day}-${ex.id}-${i}">
+            ${estRm ? estRm + ' e1RM' : '—'}
+          </div>
+        </div>`;
+    }
+
+    let prevHTML = '';
+    if (prevSaved.length && currentWeek > 1) {
+      const chips = prevSaved.filter(s => s && s.weight).map(s =>
+        `<span class="prev-set-chip">${s.weight}×${s.reps}</span>`).join('');
+      if (chips) {
+        prevHTML = `<div class="prev-session">
+          <div class="prev-label">Last Week</div>
+          <div class="prev-sets">${chips}</div>
+        </div>`;
+      }
+    }
+
+    card.innerHTML = `
+      <div class="ex-card-header" onclick="toggleCard(this)">
+        <div class="ex-card-left">
+          <div class="ex-complete-dot"></div>
+          <div>
+            <div class="ex-name">${ex.name}</div>
+            <div class="ex-meta">${ex.sets} sets · ${ex.reps} reps · ${ex.note}</div>
+          </div>
+        </div>
+        <div class="ex-card-right">
+          ${best1rm ? `<div class="ex-1rm">${best1rm} e1RM</div>` : ''}
+          <button class="edit-btn" onclick="event.stopPropagation(); openEditModal('${day}', '${ex.id}')">EDIT</button>
+          <div class="ex-chevron">▾</div>
+        </div>
+      </div>
+      <div class="ex-body">
+        <div class="input-headers">
+          <div></div>
+          <div class="input-header">Weight</div>
+          <div class="input-header">Reps</div>
+          <div class="input-header">e1RM</div>
+        </div>
+        <div class="sets-grid">${setRowsHTML}</div>
+        ${prevHTML}
+        <button class="save-btn" onclick="saveExercise('${day}', '${ex.id}')">SAVE SET DATA</button>
+      </div>`;
+
+    container.appendChild(card);
+  });
+}
+
+function toggleCard(header) {
+  const card = header.parentElement;
+  card.classList.toggle('open');
+}
+
+// ── INPUT HANDLING ────────────────────────────────────────────────────────────
+
+function onSetInput(input, day, exId, setIdx) {
+  const row = input.closest('.set-row');
+  const wInput = row.querySelector('[data-field="weight"]');
+  const rInput = row.querySelector('[data-field="reps"]');
+  const w = parseFloat(wInput.value);
+  const r = parseInt(rInput.value);
+  const rm = (w && r) ? calc1RM(w, r) : '';
+  const rmEl = document.getElementById(`est-${day}-${exId}-${setIdx}`);
+  if (rmEl) {
+    rmEl.textContent = rm ? rm + ' e1RM' : '—';
+    rmEl.className = 'set-est-1rm' + (rm ? ' highlight' : '');
+  }
+}
+
+function onSetChange(input, day, exId, setIdx) {
+  const row = input.closest('.set-row');
+  const w = parseFloat(row.querySelector('[data-field="weight"]').value) || 0;
+  const r = parseInt(row.querySelector('[data-field="reps"]').value) || 0;
+  saveSet(currentWeek, day, exId, setIdx, w, r);
+}
+
+function saveExercise(day, exId) {
+  // collect all inputs in the card
+  const container = document.getElementById('exercises-' + day);
+  const card = container.querySelector(`[data-ex-id="${exId}"]`);
+  if (!card) return;
+
+  card.querySelectorAll('.set-row').forEach((row, i) => {
+    const w = parseFloat(row.querySelector('[data-field="weight"]').value) || 0;
+    const r = parseInt(row.querySelector('[data-field="reps"]').value) || 0;
+    saveSet(currentWeek, day, exId, i, w, r);
+  });
+
+  renderDay(day);
+  updateDots();
+  updateDashboard();
+  showToast();
+
+  // reopen card
+  setTimeout(() => {
+    const newCard = document.querySelector(`[data-ex-id="${exId}"]`);
+    if (newCard) newCard.classList.add('open');
+  }, 50);
+}
+
+// ── DOTS — full version defined later in golf/recovery section ───────────────
+// (stub replaced — the full updateDots is defined below with golf+recovery)
+
+// ── DASHBOARD ────────────────────────────────────────────────────────────────
+
+function getBig3History(exId, dayKey) {
+  const points = [];
+  for (let w = 1; w <= 12; w++) {
+    const sets = loadSets(w, dayKey, exId);
+    const rm = bestSet(sets);
+    if (rm > 0) points.push({ week: w, rm });
+  }
+  return points;
+}
+
+function updateDashboard() {
+  const sqHistory = getBig3History('squat', 'mon');
+  const bHistory  = getBig3History('bench', 'wed');
+  const dHistory  = getBig3History('dead',  'thu');
+
+  const sqLatest = sqHistory.length ? sqHistory[sqHistory.length-1].rm : 250;
+  const bLatest  = bHistory.length  ? bHistory[bHistory.length-1].rm  : 205;
+  const dLatest  = dHistory.length  ? dHistory[dHistory.length-1].rm  : 255;
+  const total    = sqLatest + bLatest + dLatest;
+
+  document.getElementById('val-squat').textContent = sqLatest;
+  document.getElementById('val-bench').textContent = bLatest;
+  document.getElementById('val-dead').textContent  = dLatest;
+  document.getElementById('val-total').textContent = total;
+
+  // progress bars
+  document.getElementById('stat-squat').style.setProperty('--prog', Math.min(100, (sqLatest/315)*100).toFixed(1)+'%');
+  document.getElementById('stat-bench').style.setProperty('--prog', Math.min(100, (bLatest/275)*100).toFixed(1)+'%');
+  document.getElementById('stat-dead').style.setProperty('--prog',  Math.min(100, (dLatest/410)*100).toFixed(1)+'%');
+
+  // session count
+  let sessions = 0;
+  for (let w = 1; w <= 12; w++) {
+    ['mon','wed','thu','sat'].forEach(day => {
+      const anyLogged = PROGRAM[day].exercises.some(ex => {
+        const sets = loadSets(w, day, ex.id);
+        return sets.some(s => s && s.weight > 0);
+      });
+      if (anyLogged) sessions++;
+    });
+  }
+  document.getElementById('val-sessions').textContent = sessions;
+
+  // charts — actual vs week-by-week goal projection
+  // goal line: linear ramp from baseline at W1 to target at W12, +5 lbs/week
+  const makeGoalLine = (baseline, target) => {
+    const weeks = Array.from({length: 12}, (_, i) => i + 1);
+    const weeklyIncrease = (target - baseline) / 11;
+    return weeks.map(w => Math.round(baseline + (w - 1) * weeklyIncrease));
+  };
+
+  const chartCfg = (label, color, history, baseline, target) => {
+    const allWeeks = Array.from({length: 12}, (_, i) => `W${i+1}`);
+    const actualData = Array.from({length: 12}, (_, i) => {
+      const pt = history.find(p => p.week === i + 1);
+      return pt ? pt.rm : null;
+    });
+    const goalData = makeGoalLine(baseline, target);
+
+    return {
+      type: 'line',
+      data: {
+        labels: allWeeks,
+        datasets: [
+          {
+            label: 'Actual',
+            data: actualData,
+            borderColor: color,
+            backgroundColor: color + '15',
+            fill: true,
+            tension: 0.4,
+            pointRadius: actualData.map(v => v !== null ? 4 : 0),
+            pointBackgroundColor: color,
+            borderWidth: 2,
+            spanGaps: false,
+          },
+          {
+            label: 'Goal (+5/wk)',
+            data: goalData,
+            borderColor: '#ffffff30',
+            borderDash: [5, 4],
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill: false,
+            tension: 0.1,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            display: true,
+            labels: {
+              color: '#666',
+              font: { family: 'DM Mono', size: 9 },
+              boxWidth: 12,
+              padding: 10,
+            }
+          },
+          tooltip: {
+            backgroundColor: '#161616',
+            borderColor: '#333',
+            borderWidth: 1,
+            titleColor: '#aaa',
+            bodyColor: '#f0ede6',
+            titleFont: { family: 'DM Mono', size: 10 },
+            bodyFont: { family: 'DM Mono', size: 11 },
+            callbacks: {
+              label: ctx => {
+                if (ctx.raw === null) return null;
+                const suffix = ctx.datasetIndex === 0 ? ' lbs (actual)' : ' lbs (goal)';
+                return ctx.raw + suffix;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#555', font: { family: 'DM Mono', size: 9 } }, grid: { color: '#181818' } },
+          y: { ticks: { color: '#555', font: { family: 'DM Mono', size: 9 } }, grid: { color: '#181818' }, suggestedMin: 0 }
+        }
+      }
+    };
+  };
+
+  const totalHistory = [];
+  for (let w = 1; w <= 12; w++) {
+    const sq = getBig3History('squat','mon').find(p=>p.week===w);
+    const b  = getBig3History('bench','wed').find(p=>p.week===w);
+    const d  = getBig3History('dead', 'thu').find(p=>p.week===w);
+    if (sq || b || d) {
+      totalHistory.push({ week: w, rm: (sq?.rm||sqLatest)+(b?.rm||bLatest)+(d?.rm||dLatest) });
+    }
+  }
+
+  const makeChart = (id, cfg) => {
+    if (charts[id]) charts[id].destroy();
+    const ctx = document.getElementById(id);
+    if (ctx) charts[id] = new Chart(ctx, cfg);
+  };
+
+  makeChart('chart-squat', chartCfg('Squat',    '#e8d44d', sqHistory, 250, 315));
+  makeChart('chart-bench', chartCfg('Bench',    '#5ca8e8', bHistory,  205, 275));
+  makeChart('chart-dead',  chartCfg('Deadlift', '#d63c2f', dHistory,  255, 410));
+  makeChart('chart-total', chartCfg('Total',    '#3ab26e', totalHistory, 710, 1000));
+
+  // golf + recovery charts
+  const allWeeks = Array.from({length:12}, (_,i) => `W${i+1}`);
+  const combinedGolfAvg = [], combinedGolfBest = [], ironHistory = [];
+  for (let w = 1; w <= 12; w++) {
+    const friData = JSON.parse(localStorage.getItem(`liftlog_golf_session_w${w}_fri`) || '{}');
+    const tueData = JSON.parse(localStorage.getItem(`liftlog_golf_session_w${w}_tue`) || '{}');
+    const avg  = parseFloat(friData.driver_avg  || tueData.driver_avg)  || null;
+    const best = parseFloat(friData.driver_best || tueData.driver_best) || null;
+    if (avg)  combinedGolfAvg.push({ week: w, val: avg });
+    if (best) combinedGolfBest.push({ week: w, val: best });
+    const ironAvg = parseFloat(friData.seven_i_avg || tueData.seven_i_avg) || null;
+    if (ironAvg) ironHistory.push({ week: w, val: ironAvg });
+  }
+  simpleLineChart('chart-drive-avg',  'Avg Drive',  '#3ab26e', combinedGolfAvg,  300, allWeeks);
+  simpleLineChart('chart-drive-best', 'Best Drive', '#e8d44d', combinedGolfBest, 300, allWeeks);
+  simpleLineChart('chart-iron',       '7-Iron Avg', '#5ca8e8', ironHistory,      null, allWeeks);
+  simpleLineChart('chart-soreness',   'Soreness',   '#c87ce8', getSorenessHistory(), null, allWeeks);
+}
+
+// ── EXERCISE OVERRIDES ────────────────────────────────────────────────────────
+// Overrides are stored per week+day+exId so original program is never mutated.
+// Key: liftlog_override_w{week}_{day}_{exId} → {name, sets, note}
+
+function overrideKey(week, day, exId) {
+  return `liftlog_override_w${week}_${day}_${exId}`;
+}
+
+function getExercise(week, day, exId) {
+  const dayData = PROGRAM[day];
+  const base = dayData.exercises.find(e => e.id === exId);
+  if (!base) return null;
+  const override = JSON.parse(localStorage.getItem(overrideKey(week, day, exId)) || 'null');
+  return override ? { ...base, ...override } : { ...base };
+}
+
+let _editCtx = null; // { day, exId }
+
+function openEditModal(day, exId) {
+  _editCtx = { day, exId };
+  const ex = getExercise(currentWeek, day, exId);
+  const dayLabels = { mon:'MONDAY', wed:'WEDNESDAY', thu:'THURSDAY', sat:'SATURDAY' };
+  document.getElementById('modal-context').textContent = `WEEK ${currentWeek} · ${dayLabels[day]}`;
+  document.getElementById('modal-name').value = ex.name;
+  document.getElementById('modal-sets').value = ex.sets;
+  document.getElementById('modal-reps').value = ex.reps;
+  document.getElementById('modal-note').value = ex.note;
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEditModal(e) {
+  if (e && e.target !== document.getElementById('edit-modal')) return;
+  document.getElementById('edit-modal').classList.remove('open');
+  _editCtx = null;
+}
+
+function confirmEdit() {
+  if (!_editCtx) return;
+  const { day, exId } = _editCtx;
+  const name = document.getElementById('modal-name').value.trim();
+  const sets = parseInt(document.getElementById('modal-sets').value) || 3;
+  const reps = parseInt(document.getElementById('modal-reps').value) || 8;
+  const note = document.getElementById('modal-note').value.trim();
+  if (!name) return;
+
+  localStorage.setItem(overrideKey(currentWeek, day, exId), JSON.stringify({ name, sets, reps, note }));
+  document.getElementById('edit-modal').classList.remove('open');
+  _editCtx = null;
+  renderDay(day);
+  showToast('UPDATED ✓');
+}
+
+// ── GOLF STORAGE ─────────────────────────────────────────────────────────────
+
+const CLUBS = [
+  { id: 'driver',  label: 'Driver',   goal: 300 },
+  { id: 'three_w', label: '3-Wood',   goal: null },
+  { id: 'five_i',  label: '5-Iron',   goal: null },
+  { id: 'seven_i', label: '7-Iron',   goal: null },
+  { id: 'nine_i',  label: '9-Iron',   goal: null },
+  { id: 'pw',      label: 'PW',       goal: null },
+];
+
+function golfKey(week, day, clubId, field) {
+  return `liftlog_golf_w${week}_${day}_${clubId}_${field}`;
+}
+
+function saveGolf(week, day, clubId, field, val) {
+  localStorage.setItem(golfKey(week, day, clubId, field), JSON.stringify(val));
+}
+
+function loadGolf(week, day, clubId, field) {
+  const raw = localStorage.getItem(golfKey(week, day, clubId, field));
+  return raw !== null ? JSON.parse(raw) : null;
+}
+
+function renderGolfDay(day) {
+  const container = document.getElementById('golf-log-' + day);
+  if (!container) return;
+
+  const sessionKey = `liftlog_golf_session_w${currentWeek}_${day}`;
+  const saved = JSON.parse(localStorage.getItem(sessionKey) || '{}');
+  // saved: { driver_avg, driver_best, driver_count, [clubId]_avg, [clubId]_best, notes }
+
+  const driverAvg  = saved.driver_avg  || '';
+  const driverBest = saved.driver_best || '';
+  const driverCount= saved.driver_count|| '';
+
+  // calc vs last week
+  const lastKey = `liftlog_golf_session_w${currentWeek - 1}_${day}`;
+  const last = currentWeek > 1 ? JSON.parse(localStorage.getItem(lastKey) || '{}') : {};
+
+  function deltaChip(curr, prev, unit='yds') {
+    if (!curr || !prev) return '';
+    const d = curr - prev;
+    const cls = d > 0 ? 'better' : d < 0 ? 'worse' : '';
+    const sign = d > 0 ? '+' : '';
+    return `<span class="club-prev ${cls}">${sign}${d} ${unit} vs last wk</span>`;
+  }
+
+  // club rows
+  const clubRowsHTML = CLUBS.map(c => {
+    const avg  = saved[c.id + '_avg']  || '';
+    const best = saved[c.id + '_best'] || '';
+    const prevAvg = last[c.id + '_avg'] || null;
+    return `
+      <div class="club-row" style="margin-bottom:4px">
+        <div class="club-label">${c.label}</div>
+        <div>
+          <label style="font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Avg (yds)</label>
+          <input class="golf-input" type="number" inputmode="decimal" placeholder="—"
+            value="${avg}" id="golf_${day}_${c.id}_avg"
+            oninput="liveGolfCalc('${day}')">
+        </div>
+        <div>
+          <label style="font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Best (yds)</label>
+          <input class="golf-input" type="number" inputmode="decimal" placeholder="—"
+            value="${best}" id="golf_${day}_${c.id}_best"
+            oninput="liveGolfCalc('${day}')">
+        </div>
+        <div>${deltaChip(parseFloat(avg), parseFloat(prevAvg))}</div>
+      </div>`;
+  }).join('');
+
+  const isComplete = driverAvg !== '';
+
+  container.innerHTML = `
+    <div class="golf-card ${isComplete ? 'complete' : ''}">
+      <div class="golf-section-title">Driver Session</div>
+      <div class="golf-grid">
+        <div class="golf-field">
+          <label>Avg Distance (yds)</label>
+          <input class="golf-input" type="number" inputmode="decimal" placeholder="250"
+            value="${driverAvg}" id="golf_${day}_driver_session_avg" oninput="liveGolfCalc('${day}')">
+        </div>
+        <div class="golf-field">
+          <label>Best Drive (yds)</label>
+          <input class="golf-input" type="number" inputmode="decimal" placeholder="275"
+            value="${driverBest}" id="golf_${day}_driver_session_best" oninput="liveGolfCalc('${day}')">
+        </div>
+        <div class="golf-field">
+          <label># Drives Tracked</label>
+          <input class="golf-input" type="number" inputmode="numeric" placeholder="15"
+            value="${driverCount}" id="golf_${day}_driver_count" oninput="liveGolfCalc('${day}')">
+        </div>
+      </div>
+      <div class="golf-stat-row" id="golf_${day}_stats">
+        ${driverAvg ? `<div class="golf-stat">Avg<span>${driverAvg} yds</span></div>` : ''}
+        ${driverBest ? `<div class="golf-stat">Best<span>${driverBest} yds</span></div>` : ''}
+        ${driverAvg ? `<div class="golf-stat">To Goal<span>${Math.max(0, 300 - parseFloat(driverAvg))} yds</span></div>` : ''}
+        ${last.driver_avg ? deltaChip(parseFloat(driverAvg), parseFloat(last.driver_avg)) : ''}
+      </div>
+    </div>
+
+    <div class="golf-card">
+      <div class="golf-section-title">Club Distances</div>
+      <div class="club-rows">${clubRowsHTML}</div>
+      <button class="save-btn-green" onclick="saveGolfSession('${day}')">SAVE SESSION</button>
+    </div>`;
+}
+
+function liveGolfCalc(day) {
+  const avg  = parseFloat(document.getElementById(`golf_${day}_driver_session_avg`)?.value) || 0;
+  const best = parseFloat(document.getElementById(`golf_${day}_driver_session_best`)?.value) || 0;
+  const statsEl = document.getElementById(`golf_${day}_stats`);
+  if (statsEl && avg) {
+    statsEl.innerHTML = `
+      <div class="golf-stat">Avg<span>${avg} yds</span></div>
+      ${best ? `<div class="golf-stat">Best<span>${best} yds</span></div>` : ''}
+      <div class="golf-stat">To Goal<span>${Math.max(0, 300 - avg)} yds</span></div>`;
+  }
+}
+
+function saveGolfSession(day) {
+  const sessionKey = `liftlog_golf_session_w${currentWeek}_${day}`;
+  const data = {};
+
+  data.driver_avg   = parseFloat(document.getElementById(`golf_${day}_driver_session_avg`)?.value) || null;
+  data.driver_best  = parseFloat(document.getElementById(`golf_${day}_driver_session_best`)?.value) || null;
+  data.driver_count = parseInt(document.getElementById(`golf_${day}_driver_count`)?.value) || null;
+
+  CLUBS.forEach(c => {
+    const avg  = parseFloat(document.getElementById(`golf_${day}_${c.id}_avg`)?.value) || null;
+    const best = parseFloat(document.getElementById(`golf_${day}_${c.id}_best`)?.value) || null;
+    if (avg)  data[c.id + '_avg']  = avg;
+    if (best) data[c.id + '_best'] = best;
+  });
+
+  localStorage.setItem(sessionKey, JSON.stringify(data));
+  renderGolfDay(day);
+  updateDots();
+  updateDashboard();
+  showToast('SAVED ✓');
+}
+
+// ── RECOVERY STORAGE ──────────────────────────────────────────────────────────
+
+function recoveryKey(week) {
+  return `liftlog_recovery_w${week}`;
+}
+
+function loadRecovery(week) {
+  return JSON.parse(localStorage.getItem(recoveryKey(week)) || '{}');
+}
+
+function renderRecovery() {
+  const container = document.getElementById('recovery-log');
+  if (!container) return;
+
+  const saved = loadRecovery(currentWeek);
+  const soreness   = saved.soreness   || null;
+  const saunaMin   = saved.saunaMin   || '';
+  const steamDone  = saved.steamDone  || false;
+  const mobilityDone = saved.mobilityDone || false;
+  const walkDone   = saved.walkDone   || false;
+  const ballDone   = saved.ballDone   || false;
+  const isComplete = soreness !== null;
+
+  const sorenessHTML = Array.from({length:10}, (_,i) => i+1).map(n =>
+    `<button class="soreness-btn ${soreness===n?'selected':''}" onclick="selectSoreness(${n})">${n}</button>`
+  ).join('');
+
+  container.innerHTML = `
+    <div class="recovery-card ${isComplete ? 'complete' : ''}">
+      <div class="golf-section-title">How Are You Feeling?</div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--dim);margin-bottom:8px">SORENESS / FATIGUE · 1 = FRESH, 10 = DESTROYED</div>
+      <div class="soreness-scale">${sorenessHTML}</div>
+
+      <div class="golf-section-title">What Did You Do?</div>
+      <div class="recovery-checks">
+        <button class="check-btn ${saunaMin ? 'checked' : ''}" onclick="toggleCheck('sauna')">
+          <span class="check-icon">🧖</span> Sauna
+        </button>
+        <button class="check-btn ${steamDone ? 'checked' : ''}" onclick="toggleCheck('steam')">
+          <span class="check-icon">💨</span> Steam Room
+        </button>
+        <button class="check-btn ${mobilityDone ? 'checked' : ''}" onclick="toggleCheck('mobility')">
+          <span class="check-icon">🧘</span> Mobility Work
+        </button>
+        <button class="check-btn ${walkDone ? 'checked' : ''}" onclick="toggleCheck('walk')">
+          <span class="check-icon">🚶</span> Easy Walk
+        </button>
+        <button class="check-btn ${ballDone ? 'checked' : ''}" onclick="toggleCheck('ball')">
+          <span class="check-icon">🏀</span> Basketball
+        </button>
+      </div>
+
+      <div class="sauna-input-wrap">
+        <label>SAUNA MINUTES</label>
+        <input class="golf-input" type="number" inputmode="numeric" placeholder="20"
+          value="${saunaMin}" id="recovery-sauna-min" style="max-width:80px">
+      </div>
+
+      <button class="save-btn-purple" onclick="saveRecovery()">SAVE RECOVERY LOG</button>
+    </div>`;
+}
+
+let _recoveryState = {};
+
+function selectSoreness(n) {
+  const saved = loadRecovery(currentWeek);
+  saved.soreness = n;
+  localStorage.setItem(recoveryKey(currentWeek), JSON.stringify(saved));
+  renderRecovery();
+  updateDots();
+  updateDashboard();
+}
+
+function toggleCheck(type) {
+  const saved = loadRecovery(currentWeek);
+  const map = { sauna: 'saunaDone', steam: 'steamDone', mobility: 'mobilityDone', walk: 'walkDone', ball: 'ballDone' };
+  const key = map[type];
+  saved[key] = !saved[key];
+  localStorage.setItem(recoveryKey(currentWeek), JSON.stringify(saved));
+  renderRecovery();
+}
+
+function saveRecovery() {
+  const saved = loadRecovery(currentWeek);
+  saved.saunaMin = parseInt(document.getElementById('recovery-sauna-min')?.value) || null;
+  localStorage.setItem(recoveryKey(currentWeek), JSON.stringify(saved));
+  renderRecovery();
+  updateDots();
+  updateDashboard();
+  showToast('RECOVERY LOGGED ✓');
+}
+
+// ── GOLF HISTORY FOR CHARTS ───────────────────────────────────────────────────
+
+function getGolfHistory(day, field) {
+  const points = [];
+  for (let w = 1; w <= 12; w++) {
+    const key = `liftlog_golf_session_w${w}_${day}`;
+    const data = JSON.parse(localStorage.getItem(key) || '{}');
+    const val = data[field];
+    if (val) points.push({ week: w, val: parseFloat(val) });
+  }
+  return points;
+}
+
+function getSorenessHistory() {
+  const points = [];
+  for (let w = 1; w <= 12; w++) {
+    const s = loadRecovery(w).soreness;
+    if (s) points.push({ week: w, val: s });
+  }
+  return points;
+}
+
+// ── DOTS (extend to all days) ─────────────────────────────────────────────────
+
+function updateDots() {
+  // strength days
+  ['mon','wed','thu','sat'].forEach(day => {
+    const anyLogged = PROGRAM[day].exercises.some(ex => {
+      const sets = loadSets(currentWeek, day, ex.id);
+      return sets.some(s => s && s.weight > 0);
+    });
+    const dot = document.getElementById('dot-' + day);
+    if (dot) dot.className = 'tab-dot' + (anyLogged ? ' logged' : '');
+  });
+
+  // golf days
+  ['tue','fri'].forEach(day => {
+    const key = `liftlog_golf_session_w${currentWeek}_${day}`;
+    const data = JSON.parse(localStorage.getItem(key) || '{}');
+    const logged = !!data.driver_avg;
+    const dot = document.getElementById('dot-' + day);
+    if (dot) dot.className = 'tab-dot' + (logged ? ' logged' : '');
+  });
+
+  // recovery
+  const rec = loadRecovery(currentWeek);
+  const sunDot = document.getElementById('dot-sun');
+  if (sunDot) sunDot.className = 'tab-dot' + (rec.soreness ? ' logged' : '');
+}
+
+// ── GOLF SIMPLE LINE CHART ────────────────────────────────────────────────────
+
+function simpleLineChart(id, label, color, history, target, allWeeks) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+
+  const actualData = Array.from({length:12}, (_,i) => {
+    const pt = history.find(p => p.week === i+1);
+    return pt ? pt.val : null;
+  });
+
+  const goalLine = target ? Array.from({length:12}, () => target) : null;
+
+  const datasets = [{
+    label,
+    data: actualData,
+    borderColor: color,
+    backgroundColor: color + '15',
+    fill: true,
+    tension: 0.4,
+    pointRadius: actualData.map(v => v !== null ? 4 : 0),
+    pointBackgroundColor: color,
+    borderWidth: 2,
+    spanGaps: false,
+  }];
+
+  if (goalLine) datasets.push({
+    label: 'Goal',
+    data: goalLine,
+    borderColor: '#ffffff25',
+    borderDash: [5,4],
+    borderWidth: 1.5,
+    pointRadius: 0,
+    fill: false,
+  });
+
+  charts[id] = new Chart(ctx, {
+    type: 'line',
+    data: { labels: allWeeks, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#161616', borderColor: '#333', borderWidth: 1,
+          titleColor: '#aaa', bodyColor: '#f0ede6',
+          titleFont: { family: 'DM Mono', size: 10 },
+          bodyFont: { family: 'DM Mono', size: 11 },
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#555', font: { family: 'DM Mono', size: 9 } }, grid: { color: '#181818' } },
+        y: { ticks: { color: '#555', font: { family: 'DM Mono', size: 9 } }, grid: { color: '#181818' }, suggestedMin: 0 }
+      }
+    }
+  });
+}
+
+// ── HISTORY (extend to golf + recovery) ──────────────────────────────────────
+
+function renderHistory() {
+  const container = document.getElementById('history-list');
+  const entries = [];
+
+  // strength
+  for (let w = 12; w >= 1; w--) {
+    ['mon','wed','thu','sat'].forEach(day => {
+      PROGRAM[day].exercises.forEach(ex => {
+        const sets = loadSets(w, day, ex.id);
+        const filledSets = sets.filter(s => s && s.weight > 0);
+        if (!filledSets.length) return;
+        const best = bestSet(sets);
+        entries.push({ week: w, type: 'lift', day, label: ex.name, sets: filledSets, best });
+      });
+    });
+
+    // golf
+    ['tue','fri'].forEach(day => {
+      const key = `liftlog_golf_session_w${w}_${day}`;
+      const data = JSON.parse(localStorage.getItem(key) || '{}');
+      if (!data.driver_avg) return;
+      entries.push({ week: w, type: 'golf', day,
+        label: `Five Iron · ${day === 'tue' ? 'Power' : 'Consistency'}`,
+        driverAvg: data.driver_avg, driverBest: data.driver_best, driverCount: data.driver_count });
+    });
+
+    // recovery
+    const rec = loadRecovery(w);
+    if (rec.soreness) {
+      entries.push({ week: w, type: 'recovery', day: 'sun',
+        soreness: rec.soreness, saunaMin: rec.saunaMin });
+    }
+  }
+
+  entries.sort((a,b) => b.week - a.week);
+
+  if (!entries.length) {
+    container.innerHTML = `<div class="empty-state"><div class="big">📋</div>No sessions logged yet.<br>Head to a day tab and start tracking.</div>`;
+    return;
+  }
+
+  container.innerHTML = entries.map(e => {
+    if (e.type === 'lift') return `
+      <div class="log-entry">
+        <div>
+          <div class="log-date">Week ${e.week} · ${e.day.toUpperCase()}</div>
+          <div class="log-exercise">${e.label}</div>
+          <div class="log-sets">${e.sets.map(s => `<span class="log-set-chip">${s.weight}×${s.reps}</span>`).join('')}</div>
+        </div>
+        ${e.best ? `<div class="log-1rm-badge">${e.best} e1RM</div>` : ''}
+      </div>`;
+
+    if (e.type === 'golf') return `
+      <div class="log-entry">
+        <div>
+          <div class="log-date">Week ${e.week} · ${e.day.toUpperCase()}</div>
+          <div class="log-exercise">${e.label}</div>
+          <div class="log-sets">
+            ${e.driverAvg ? `<span class="log-set-chip">avg ${e.driverAvg} yds</span>` : ''}
+            ${e.driverBest ? `<span class="log-set-chip">best ${e.driverBest} yds</span>` : ''}
+            ${e.driverCount ? `<span class="log-set-chip">${e.driverCount} drives</span>` : ''}
+          </div>
+        </div>
+        <div class="log-1rm-badge" style="color:var(--green);background:rgba(58,178,110,0.08)">⛳ GOLF</div>
+      </div>`;
+
+    if (e.type === 'recovery') return `
+      <div class="log-entry">
+        <div>
+          <div class="log-date">Week ${e.week} · SUN</div>
+          <div class="log-exercise">Recovery Check-In</div>
+          <div class="log-sets">
+            <span class="log-set-chip">soreness ${e.soreness}/10</span>
+            ${e.saunaMin ? `<span class="log-set-chip">sauna ${e.saunaMin} min</span>` : ''}
+          </div>
+        </div>
+        <div class="log-1rm-badge" style="color:var(--purple);background:rgba(200,124,232,0.08)">😴 REST</div>
+      </div>`;
+
+    return '';
+  }).join('');
+}
+
+// ── TOAST ────────────────────────────────────────────────────────────────────
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg || 'SAVED ✓';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ── VIEW SWITCHING ────────────────────────────────────────────────────────────
+
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (id === 'dashboard') updateDashboard();
+  if (id === 'history')   renderHistory();
+  if (id === 'tue' || id === 'fri') renderGolfDay(id);
+  if (id === 'sun') renderRecovery();
+}
+
+// ── WEEK NAV ─────────────────────────────────────────────────────────────────
+
+function changeWeek(delta) {
+  currentWeek = Math.max(1, Math.min(12, currentWeek + delta));
+  document.getElementById('week-label').textContent = `WEEK ${currentWeek}`;
+  ['mon','wed','thu','sat'].forEach(day => renderDay(day));
+  renderGolfDay('tue');
+  renderGolfDay('fri');
+  renderRecovery();
+  updateDots();
+  updateDashboard();
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+
+['mon','wed','thu','sat'].forEach(day => renderDay(day));
+renderGolfDay('tue');
+renderGolfDay('fri');
+renderRecovery();
+updateDots();
+updateDashboard();
+</script>
+</body>
+</html>
